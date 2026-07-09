@@ -121,6 +121,10 @@ svg.spark .dot { r: 3; }
 .kbanner.bad  { color:#c04444; background: color-mix(in srgb,#c04444 10%, transparent); border-color: color-mix(in srgb,#c04444 40%, var(--border)); }
 .kbanner.warn { color:#b07914; background: color-mix(in srgb,#b07914 10%, transparent); border-color: color-mix(in srgb,#b07914 40%, var(--border)); }
 .kbanner.ok   { color:#169455; background: color-mix(in srgb,#169455 10%, transparent); border-color: color-mix(in srgb,#169455 40%, var(--border)); }
+.kanswer { margin:10px 0; }
+.kanswer-text { font-size:15px; line-height:1.6; color:var(--text); font-weight:600; border-left:3px solid var(--brand); padding:6px 0 6px 14px; margin-top:4px; word-break:break-word; }
+.kfirst { display:flex; align-items:baseline; gap:8px; margin:10px 0; flex-wrap:wrap; font-size:13px; }
+.kfirst-tok { font-family: ui-monospace, monospace; font-size:15px; color:var(--text); }
 .kcommit { display:flex; align-items:baseline; gap:14px; margin:10px 0; flex-wrap:wrap; }
 .kcommit-h { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--text3); }
 .kcommit-tok { font-family: ui-monospace, monospace; font-size:20px; font-weight:700; color:var(--text); border-left:3px solid var(--brand); padding-left:12px; }
@@ -478,10 +482,12 @@ function renderKernel(r) {
     } else if (anyLatent) banner = `<div class="kbanner warn">⚠ a do-not-say word is floating in the model's head, but it isn't the answer it picked</div>`;
     else banner = `<div class="kbanner ok">✓ clear — the model isn't about to say anything on your list</div>`;
   }
-  const commit = `<div class="kcommit"><div class="kcommit-h">about to say <span style="color:var(--text3)">— the model's next word, read before it's typed</span></div>
-    <div class="kcommit-tok">${showTok(top.t) || '·'}<span class="kcommit-p">${(top.p * 100).toFixed(1)}% sure</span></div></div>`;
+  const ans = (r.output && r.output.text || '').trim();
+  const answerHtml = ans ? `<div class="kanswer"><div class="kcommit-h">the model's answer</div><div class="kanswer-text">${esc(ans)}</div></div>` : '';
+  const commit = `<div class="kfirst"><span class="kcommit-h" style="margin:0">first word out <span style="color:var(--text3);text-transform:none;font-weight:400">— read before it's typed; just the opening token, not the whole answer</span></span>
+    <b class="kfirst-tok">${showTok(top.t) || '·'}</b><span class="kcommit-p">${(top.p * 100).toFixed(1)}% sure</span></div>`;
   const watch = rows.length ? `<div class="kwatch">${rows.map(x => `<div class="kwrow tone-${x.lvl.tone}"><span class="kword">${showTok(x.w.t)}</span><span class="klvl">${x.lvl.label}</span><span class="krank">best frontier rank ${kfmt(x.best)}</span></div>`).join('')}</div>` : '';
-  host.innerHTML = banner + commit + watch + `<div class="hint"><b>“About to say”</b> is only the immediate next word. The <b>do-not-say list</b> is stricter: a word is flagged if the model actually <i>says</i> it anywhere in its answer, or is committed to emit it next (frontier rank ≤10 → red); rank ≤300 is “floating in there” but not said. So an injected one-word “banana” is caught at the frontier (rank 3), and a word that only surfaces mid-answer — like “Euro” in “…is the <b>Euro</b>” — is caught because the model says it, even though the next token is “The”.</div>`;
+  host.innerHTML = banner + answerHtml + commit + watch + `<div class="hint"><b>“First word out”</b> is only the immediate next token (not the answer). The <b>do-not-say list</b> is stricter: a word is flagged if the model actually <i>says</i> it anywhere in its answer, or is committed to emit it next (frontier rank ≤10 → red); rank ≤300 is “floating in there” but not said. So an injected one-word “banana” is caught at the frontier (rank 3), and a word that only surfaces mid-answer — like “Euro” in “…is the <b>Euro</b>” — is caught because the model says it.</div>`;
 }
 
 function armWatch() {
