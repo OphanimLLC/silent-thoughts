@@ -6,6 +6,8 @@
 #
 # See https://github.com/OphanimLLC/silent-thoughts for the full workbench.
 
+import spaces  # must be imported before torch for ZeroGPU
+
 import glob
 import json
 import math
@@ -13,36 +15,34 @@ import os
 import threading
 
 import gradio as gr
+import torch
+import transformers
+import jlens
+from huggingface_hub import hf_hub_download
 
 import render
 
-MODEL_ID = "Qwen/Qwen2.5-0.5B-Instruct"
+MODEL_ID = os.environ.get("ST_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
 LENS_REPO = os.environ.get("ST_LENS_REPO", "MildHotSauce/jlens-qwen2.5-0.5b-instruct")
 
-_STATE = {"ready": False, "error": None}
-_MODEL = _TOK = _LENS = None
 _LOCK = threading.Lock()
+_STATE = {"ready": False, "error": None}
 
-
-def _load():
-    global _MODEL, _TOK, _LENS
-    try:
-        import torch
-        import transformers
-        import jlens
-        from huggingface_hub import hf_hub_download
-
-        lens_path = hf_hub_download(LENS_REPO, "lens.pt")
-        _LENS = jlens.JacobianLens.load(lens_path)
-        _TOK = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
-        hf = transformers.AutoModelForCausalLM.from_pretrained(MODEL_ID, dtype=torch.float32)
-        _MODEL = jlens.from_hf(hf, _TOK)
-        _STATE["ready"] = True
-    except Exception as e:  # surfaced in the UI
-        _STATE["error"] = f"{type(e).__name__}: {e}"
-
-
-threading.Thread(target=_load, daemon=True).start()
+# Synchronous load at startup. On ZeroGPU, .to('cuda') at module level is the
+# supported pattern (weights land on the H200 slice when a @spaces.GPU call
+# runs); on CPU hardware this degrades gracefully to float32 CPU.
+try:
+    _DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    _DTYPE = torch.bfloat16 if _DEVICE == "cuda" else torch.float32
+    lens_path = hf_hub_download(LENS_REPO, "lens.pt")
+    _LENS = jlens.JacobianLens.load(lens_path)
+    _TOK = transformers.AutoTokenizer.from_pretrained(MODEL_ID)
+    _hf = transformers.AutoModelForCausalLM.from_pretrained(MODEL_ID, dtype=_DTYPE).to(_DEVICE)
+    _MODEL = jlens.from_hf(_hf, _TOK)
+    _STATE["ready"] = True
+except Exception as e:  # surfaced in the UI
+    _MODEL = _TOK = _LENS = None
+    _STATE["error"] = f"{type(e).__name__}: {e}"
 
 
 def _display_token(t):
@@ -67,9 +67,8 @@ def _resolve_word(word):
     return ids[0] if ids else None
 
 
+@spaces.GPU(duration=60)
 def probe(prompt, chat, top_k, gen_tokens, track_words):
-    import torch
-
     if not _STATE["ready"]:
         msg = _STATE["error"] or "model still loading — try again in ~30s"
         return f"<div class='stcard'>{render._esc(msg)}</div>"
@@ -163,13 +162,12 @@ def probe(prompt, chat, top_k, gen_tokens, track_words):
     return render.render_probe(r) + extra
 
 
+@spaces.GPU(duration=60)
 def steer(prompt, chat, word, vs_word, layer, strength, transport, gen_tokens):
     """Causal test: inject the word's (centered) direction at one layer, at the
     last position only, and compare greedy continuations. transport='direct'
     reliably flips answers at late layers; 'jacobian' writes through J^T — the
     instructive comparison (see finding 3)."""
-    import torch
-
     if not _STATE["ready"]:
         msg = _STATE["error"] or "model still loading — try again in ~30s"
         return f"<div class='stcard'>{render._esc(msg)}</div>"

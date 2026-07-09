@@ -2,4 +2,5 @@ torch
 transformers>=4.51
 gradio>=6
 huggingface_hub
+spaces
 jlens @ git+https://github.com/anthropics/jacobian-lens

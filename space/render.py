@@ -192,21 +192,22 @@ def render_grid(r, max_cols=48):
 
 
 CSS = """
-/* Cards are always light — pin the text dark too, or HF's dark theme makes
-   unstyled text inherit near-white and vanish (white-on-white). */
-.stcard { border: 1px solid #d8d8d2; border-radius: 12px; padding: 12px 14px; margin: 10px 0; background: #fff; color: #16161a; }
-.stcard a { color: #7a3ea3; }
-.stlabel { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #8a8a92; margin-bottom: 8px; }
-.stsay { font-size: 15px; line-height: 1.55; border-left: 3px solid #7a3ea3; padding-left: 12px; word-break: break-word; }
-.stprompt { color: #9a9aa2; } .stgen { font-weight: 600; background: rgba(122,62,163,.12); border-radius: 3px; }
-.stchip { display: inline-block; margin: 0 6px 6px 0; padding: 4px 11px; border-radius: 999px; border: 1px solid #d8d8d2; font-size: 13px; font-family: ui-monospace, monospace; color: #4b4b52; }
-.stchip b { color: #16161a; }
-.stsaid { color: #169455; font-size: 11px; } .stunsaid { color: #b07914; font-size: 11px; font-style: italic; }
-.sthint { font-size: 12px; color: #8a8a92; margin-top: 6px; }
+/* Gradio's light/dark theme CSS fights ours with higher specificity, so every
+   element is self-contained with !important — readable on ANY background. */
+.stcard { border: 1px solid #d8d8d2 !important; border-radius: 12px; padding: 12px 14px; margin: 10px 0; background: #fff !important; color: #16161a !important; }
+.stcard a { color: #7a3ea3 !important; }
+.stlabel { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #8a8a92 !important; margin-bottom: 8px; }
+.stsay { font-size: 15px; line-height: 1.7; border-left: 3px solid #7a3ea3; padding-left: 12px; word-break: break-word; color: #16161a !important; }
+.stprompt { color: #9a9aa2 !important; }
+.stgen { font-weight: 600; background: #7a3ea3 !important; color: #fff !important; border-radius: 4px; padding: 1px 7px; }
+.stchip { display: inline-block; margin: 0 6px 6px 0; padding: 4px 11px; border-radius: 999px; border: 1px solid #d8d8d2; font-size: 13px; font-family: ui-monospace, monospace; background: #f4f4f1 !important; color: #4b4b52 !important; }
+.stchip b { color: #16161a !important; }
+.stsaid { color: #169455 !important; font-size: 11px; } .stunsaid { color: #b07914 !important; font-size: 11px; font-style: italic; }
+.sthint { font-size: 12px; color: #8a8a92 !important; margin-top: 6px; }
 .stscroll { overflow: auto; max-height: 640px; border: 1px solid #d8d8d2; border-radius: 10px; }
 table.stgrid { border-collapse: collapse; font-family: ui-monospace, monospace; font-size: 11px; }
-table.stgrid th { background: #f4f4f1; color: #4b4b52; font-weight: 500; padding: 4px 6px; white-space: nowrap; position: sticky; top: 0; }
-table.stgrid td { background: #fff; color: #16161a; padding: 2px 6px; }
+table.stgrid th { background: #f4f4f1 !important; color: #4b4b52 !important; font-weight: 500; padding: 4px 6px; white-space: nowrap; position: sticky; top: 0; }
+table.stgrid td { background: #fff !important; color: #16161a !important; padding: 2px 6px; }
 table.stgrid tbody th { position: sticky; left: 0; text-align: right; }
 table.stgrid th.stcorner { left: 0; z-index: 2; }
 .stdim { color: #9a9aa2; }
@@ -216,7 +217,7 @@ table.stgrid th.stcorner { left: 0; z-index: 2; }
 .stcell.sttransient { opacity: .72; }
 tr.stfinal th, tr.stfinal td { border-top: 2px solid #b9b9b2; }
 .stcmp { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px; }
-.sthd { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #8a8a92; margin-bottom: 4px; }
+.sthd { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #8a8a92 !important; margin-bottom: 4px; }
 @media (max-width: 800px) { .stcmp { grid-template-columns: 1fr; } }
 """
 
