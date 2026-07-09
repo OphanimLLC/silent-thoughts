@@ -461,7 +461,7 @@ with gr.Blocks(title="silent-thoughts") as demo:
             "**Rewrite — the write half of the loop.** Override the caught word by steering *toward* a replacement "
             "(clean rewrite), or leave it blank to push it *away* (suppresses, often garbles).")
         with gr.Row():
-            k_repl = gr.Textbox(label="make it say (blank = suppress)", value="Picnic")
+            k_repl = gr.Textbox(label="make it say (blank = suppress)", value="Apple")
             k_rewrite = gr.Button("Rewrite →", variant="primary")
         k_steer_out = gr.HTML()
         k_read.click(kernel_monitor, [k_prompt, k_chat, k_watch], k_out)
