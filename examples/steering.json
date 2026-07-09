@@ -1,0 +1,137 @@
+{
+ "meta": {
+  "title": "Steering: reading is not writing",
+  "model": "same 26B chat-tuned model",
+  "notes": "Injecting directions into the residual stream at one layer (last prompt position + generated steps only; strength = fraction of the position's residual norm; direction centered by mean-row subtraction or explicit contrast). The Jacobian-transposed direction J^T w never steers - at every layer and strength it derails into junk-magnet output. Direct injection of the centered unembedding direction flips the answer at late layers. The corpus-average Jacobian is a good reader and a bad writer. Replication on dense Qwen2.5-0.5B-Instruct: direct injection flips cleanly at the last fitted layer (L22 x0.15 -> ' Rome'); jacobian transport CAN flip there but needs ~2x the strength and yields degenerate repetition - the asymmetry is graded and appears to grow with scale/sparsity."
+ },
+ "prompt": "What is the capital of France? Answer in one word.",
+ "chat": true,
+ "push": "Rome",
+ "against": "Paris",
+ "baseline": "Paris",
+ "runs": [
+  {
+   "transport": "jacobian",
+   "layer": 23,
+   "strength": 0.01,
+   "steered": "--------"
+  },
+  {
+   "transport": "jacobian",
+   "layer": 23,
+   "strength": 0.02,
+   "steered": " than than than than than than than than"
+  },
+  {
+   "transport": "jacobian",
+   "layer": 23,
+   "strength": 0.05,
+   "steered": " than than than than than than than than"
+  },
+  {
+   "transport": "jacobian",
+   "layer": 23,
+   "strength": 0.1,
+   "steered": " own own own own own own own own"
+  },
+  {
+   "transport": "jacobian",
+   "layer": 27,
+   "strength": 0.02,
+   "steered": " own로로는로로로 own own"
+  },
+  {
+   "transport": "jacobian",
+   "layer": 15,
+   "strength": 0.05,
+   "steered": "listhoughtthought\ndaeddd"
+  },
+  {
+   "transport": "jacobian",
+   "layer": 10,
+   "strength": 0.05,
+   "steered": "Paris"
+  },
+  {
+   "transport": "direct",
+   "layer": 27,
+   "strength": 0.05,
+   "steered": "اً Romeاًًا Rome Rome Rome Rome"
+  },
+  {
+   "transport": "direct",
+   "layer": 27,
+   "strength": 0.15,
+   "steered": "اً Romeاً Rome Rome Rome Rome Rome"
+  },
+  {
+   "transport": "direct",
+   "layer": 24,
+   "strength": 0.15,
+   "steered": " Rome Rome.-. Rome.-.-.-"
+  },
+  {
+   "transport": "direct",
+   "layer": 20,
+   "strength": 0.15,
+   "steered": "........"
+  },
+  {
+   "transport": "direct",
+   "layer": 15,
+   "strength": 0.15,
+   "steered": "Paris"
+  }
+ ],
+ "replication_qwen2.5_0.5b": {
+  "prompt": "What is the capital of France? Answer in one word.",
+  "chat": true,
+  "push": "Rome",
+  "against": "Paris",
+  "baseline": "Paris",
+  "runs": [
+   {
+    "transport": "direct",
+    "layer": 22,
+    "strength": 0.15,
+    "steered": " Rome"
+   },
+   {
+    "transport": "direct",
+    "layer": 22,
+    "strength": 0.3,
+    "steered": " Rome Rome Rome Rome Rome Rome"
+   },
+   {
+    "transport": "direct",
+    "layer": 18,
+    "strength": 0.3,
+    "steered": "Paris"
+   },
+   {
+    "transport": "jacobian",
+    "layer": 22,
+    "strength": 0.15,
+    "steered": "Paris"
+   },
+   {
+    "transport": "jacobian",
+    "layer": 22,
+    "strength": 0.3,
+    "steered": " Rome Rome Rome Rome Rome Rome"
+   },
+   {
+    "transport": "jacobian",
+    "layer": 16,
+    "strength": 0.15,
+    "steered": "Paris"
+   },
+   {
+    "transport": "jacobian",
+    "layer": 10,
+    "strength": 0.15,
+    "steered": "Paris"
+   }
+  ]
+ }
+}

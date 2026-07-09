@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>silent-thoughts — Jacobian lens workbench</title>
+<style>
+:root {
+  --paper: #f7f7f5; --surface: #ffffff; --surface2: #efefec;
+  --text: #16161a; --text2: #4b4b52; --text3: #8a8a92;
+  --border: #dcdcd7; --border-strong: #b9b9b2; --brand: #7a3ea3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #131316; --surface: #1b1b20; --surface2: #232329;
+    --text: #ececf0; --text2: #b3b3bc; --text3: #77777f;
+    --border: #2e2e35; --border-strong: #4a4a52; --brand: #b07fd8;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 24px; background: var(--paper); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+.wrap { max-width: 1400px; margin: 0 auto; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+.sub { color: var(--text2); font-size: 14px; margin-bottom: 18px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 16px; }
+.card-label { font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--text3); margin-bottom: 8px; }
+.card-label span { text-transform: none; letter-spacing: 0; }
+textarea { width: 100%; resize: vertical; min-height: 64px; padding: 10px 12px;
+  border-radius: 10px; font: inherit; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 10px; }
+.row label { font-size: 13px; color: var(--text2); display: inline-flex; gap: 6px; align-items: center; }
+input[type=number], input[type=text], select { padding: 5px 8px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+  font: inherit; font-size: 13px; }
+button { padding: 7px 16px; border-radius: 999px; border: 1px solid var(--border-strong);
+  background: var(--text); color: var(--paper); font: inherit; font-size: 14px;
+  font-weight: 600; cursor: pointer; }
+button.ghost { background: none; color: var(--text2); font-weight: 400; }
+button:disabled { opacity: .5; cursor: default; }
+.pill { display: inline-flex; align-items: center; gap: 7px; padding: 4px 12px;
+  border-radius: 999px; font-size: 13px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text2); float: right; }
+.pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); }
+.pill.ok .dot { background: #169455; } .pill.bad .dot { background: #c04444; }
+
+/* explainer */
+details.explain { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+details.explain > summary { cursor: pointer; padding: 10px 14px; font-size: 13px; font-weight: 600; color: var(--text2); }
+.explain-body { padding: 0 16px 12px; font-size: 13px; line-height: 1.55; color: var(--text2); }
+.explain-body b { color: var(--text); }
+.explain-body ol { margin: 8px 0; padding-left: 20px; }
+.explain-body li { margin-bottom: 8px; }
+.explain-body code { font-family: ui-monospace, monospace; font-size: 12px; background: var(--surface2); padding: 1px 4px; border-radius: 4px; }
+
+/* say card */
+.say { font-size: 15px; line-height: 1.6; word-break: break-word;
+  border-left: 3px solid var(--brand); padding: 6px 0 6px 14px; }
+.say .prompt { color: var(--text3); }
+.say .gen { color: var(--text); font-weight: 600;
+  background: color-mix(in srgb, var(--brand) 14%, transparent); border-radius: 3px; padding: 0 2px; }
+
+/* silent thoughts */
+.chip { display: inline-flex; align-items: center; gap: 6px; margin: 0 8px 8px 0;
+  padding: 5px 12px; border-radius: 999px; cursor: pointer; font-size: 13px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text2);
+  font-family: ui-monospace, monospace; font-weight: 400; }
+.chip b { color: var(--text); }
+.chip:hover, .chip.spot { border-color: var(--brand); }
+.chip.spot { box-shadow: 0 0 0 1px var(--brand) inset; }
+.said { color: #169455; font-size: 11px; } .unsaid { color: #b07914; font-size: 11px; font-style: italic; }
+
+/* grid */
+.grid-scroll { overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+table.grid { border-collapse: collapse; font-family: ui-monospace, 'JetBrains Mono', monospace; font-size: 11px; }
+table.grid th, table.grid td { padding: 0; text-align: center; }
+table.grid thead th { position: sticky; top: 0; z-index: 2; background: var(--surface);
+  color: var(--text2); font-weight: 500; padding: 6px 4px; min-width: 62px;
+  border-bottom: 1px solid var(--border-strong); white-space: nowrap; }
+table.grid thead th.corner { left: 0; z-index: 3; }
+table.grid tbody th { position: sticky; left: 0; z-index: 1; background: var(--surface);
+  color: var(--text2); font-weight: 500; padding: 4px 8px; text-align: right;
+  border-right: 1px solid var(--border-strong); white-space: nowrap; }
+table.grid tbody tr.final th, table.grid tbody tr.final td { border-top: 2px solid var(--border-strong); }
+.cell { min-width: 62px; height: 30px; padding: 2px 4px; cursor: pointer;
+  border: 1px solid var(--border); position: relative; color: var(--cell-ink, var(--text));
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90px; }
+.cell sup { font-size: 8px; opacity: .6; margin-left: 2px; }
+.cell.pinned { outline: 2px solid var(--brand); outline-offset: -2px; }
+.cell.stable { box-shadow: inset 3px 0 0 var(--brand); }
+.fade-on .cell.noise { opacity: .38; font-style: italic; }
+.fade-on .cell.transient { opacity: .72; }
+.legend { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12px;
+  color: var(--text2); margin: 10px 2px 0; }
+.legend .bar { height: 10px; width: 140px; border-radius: 3px;
+  background: linear-gradient(90deg, #f0f0ef, #141414); border: 1px solid var(--border); }
+.legend .bar-spot { background: linear-gradient(90deg, var(--surface2), var(--brand)); }
+.key-stable { color: var(--brand); font-weight: 600; }
+.key-noise { font-style: italic; opacity: .6; }
+.hint { font-size: 12px; color: var(--text3); margin: 6px 2px 0; }
+
+/* pins spark */
+.pinchip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px;
+  margin: 0 6px 6px 0; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface2); font-size: 12px; font-family: ui-monospace, monospace; }
+.pinchip button { border: none; background: none; cursor: pointer; color: var(--text3);
+  font-size: 13px; padding: 0; }
+.pinchip.spot { border-color: var(--brand); }
+svg.spark { width: 100%; height: 220px; }
+svg.spark text { fill: var(--text2); font-size: 11px; font-family: ui-monospace, monospace; }
+svg.spark .grid-line { stroke: var(--border); stroke-width: 1; }
+svg.spark .axis { stroke: var(--border-strong); stroke-width: 1; }
+svg.spark path { fill: none; stroke-width: 2; }
+svg.spark .dot { r: 3; }
+
+/* steer */
+.steer-cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+.steer-h { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text3); margin-bottom: 4px; }
+@media (max-width: 900px) { .steer-cmp { grid-template-columns: 1fr; } }
+.tone-ok { color: #169455; } .tone-warn { color: #b07914; } .tone-mute { color: var(--text3); }
+
+/* tooltip */
+.tip { position: fixed; z-index: 50; pointer-events: none; max-width: 280px;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px;
+  padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.18);
+  font-family: ui-monospace, monospace; color: var(--text); display: none; }
+.tip .r { display: flex; justify-content: space-between; gap: 12px; }
+.tip .r span:last-child { color: var(--text2); }
+.tip-v { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="pill" class="pill"><span class="dot"></span><span>checking…</span></div>
+  <h1>silent-thoughts</h1>
+  <div class="sub">A workbench for the <a href="https://github.com/anthropics/jacobian-lens">Jacobian lens</a> — watch a language model's thoughts form before it speaks. Each grid cell is the word a layer is leaning toward at that position, <i>before</i> anything is said.</div>
+
+  <div class="card">
+    <div class="card-label">Probe</div>
+    <textarea id="prompt">What currency is used in the country shaped like a boot? Answer briefly.</textarea>
+    <div class="row">
+      <label>top-k <input type="number" id="topk" value="5" min="1" max="20" style="width:56px"></label>
+      <label>max tokens <input type="number" id="maxlen" value="64" min="16" max="256" style="width:64px"></label>
+      <label title="greedy continuation; 0 = skip">say <input type="number" id="gen" value="24" min="0" max="128" style="width:56px"></label>
+      <label title="chat-tuned models produce junk loops in raw completion mode — leave on"><input type="checkbox" id="chat" checked> chat template</label>
+      <label>track a word <input type="text" id="word" placeholder="euro" style="width:90px"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();trackWord();}">
+        <button class="ghost" onclick="trackWord()">🔦</button></label>
+      <button id="run" onclick="runProbe(true)">Probe →</button>
+      <span id="run-status" style="font-size:13px;color:var(--text2)"></span>
+    </div>
+  </div>
+
+  <details class="explain">
+    <summary>How to read this — signal vs. noise</summary>
+    <div class="explain-body">
+      <p>Each column is a token position; each row is a layer. A cell shows the word that layer is leaning toward at that position — the model's silent, in-progress thought. Most cells are <b>not</b> the model reasoning; they're the readout showing you underdetermined activations. Five things to keep in mind:</p>
+      <ol>
+        <li><b>Mid-layer junk is normal.</b> Early/middle cells often surface high-norm “magnet” tokens (odd foreign words, code fragments) with no relation to the prompt. The residual there hasn't resolved, so the lens latches onto whatever token has a big dot-product with the mush. Faint italic cells are these — the tool fades them.</li>
+        <li><b>Trust the vertical stripes.</b> A real thought is the <b>same word holding across several layers</b> (left stripe) and surviving into the late layers. A word that flashes for one layer is noise even when it looks confident.</li>
+        <li><b>The answer migrates to the last positions.</b> Under causal attention only the final tokens have seen the whole prompt, so the resolved answer accumulates there — not under the word it refers to.</li>
+        <li><b>Chat-tuned models can't think raw.</b> With the chat template a model may answer perfectly while the same question as bare text yields an empty grid and a greedy repetition loop. An empty grid + loop means the answer circuitry never engaged — not that the model lacks the fact.</li>
+        <li><b>Reading ≠ writing.</b> The lens transport (J·h) reads the workspace faithfully, but writing through its transpose fails — J<sup>T</sup>-injected directions land in the junk-magnet subspace and derail the model. Direct injection of a word's output direction at late layers <i>does</i> flip answers. Use 🔦 to find where a concept is latent, then Steer to test whether the reading is causally real.</li>
+      </ol>
+      <p style="color:var(--text3)">“Concentrated” in a tooltip is <code>1 − entropy/ln(vocab)</code>: how committed the layer is to one token. High concentration + a long stripe = a resolved thought; concentrated but isolated = likely artifact; low = noise.</p>
+    </div>
+  </details>
+
+  <div id="out"></div>
+
+  <div class="card">
+    <div class="card-label">Steer — test a thought causally <span style="color:var(--text3);font-weight:400">— inject the word's direction into one layer and see if the output changes</span></div>
+    <div class="row">
+      <label>push toward <input type="text" id="st-word" placeholder="Rome" style="width:100px"></label>
+      <label>against <input type="text" id="st-vs" placeholder="(optional)" style="width:100px"></label>
+      <label>layer <input type="number" id="st-layer" value="21" min="0" style="width:56px" data-auto="1" oninput="this.dataset.auto=0"></label>
+      <label>strength <input type="number" id="st-str" value="0.1" min="0" max="1" step="0.05" style="width:64px"></label>
+      <label>transport <select id="st-tr">
+        <option value="direct" selected>direct (works, late layers)</option>
+        <option value="jacobian">jacobian (instructive failure)</option>
+      </select></label>
+      <button id="st-run" onclick="runSteer()">Steer →</button>
+      <span id="st-status" style="font-size:13px;color:var(--text2)"></span>
+    </div>
+    <div class="hint">Uses the prompt above. <b>direct</b> adds the word's centered output direction — reliably flips answers in the last few layers. <b>jacobian</b> writes through J<sup>T</sup> — in our experiments it never steers, only derails (see README). Strength is a fraction of the residual norm; 0.05–0.2 is the useful range.</div>
+    <div id="st-out"></div>
+  </div>
+
+  <div class="hint" style="margin-bottom:24px">Server: <code id="api-label"></code> — change with <code>localStorage.setItem('st-api', 'http://host:port')</code>. Run one with <code>python server/server.py --model &lt;hf-model&gt; --lens &lt;lens.pt&gt;</code>.</div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const API = localStorage.getItem('st-api') || 'http://127.0.0.1:8791';
+document.getElementById('api-label').textContent = API;
+
+const S = { result: null, pins: [], runs: {}, fadeNoise: true, spot: null, pendingWord: null };
+
+const api = (p, opts) => fetch(API + p, opts).then(r => r.json().then(b => ({ ok: r.ok, body: b })));
+const post = (p, body) => api(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+
+function esc(s) { return (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function showTok(t) { return t === ' ' ? '␣' : t === '\\n' ? '⏎' : esc(t); }
+
+function cellShade(p) {
+  const t = Math.pow(Math.max(0, Math.min(1, p)), 0.45);
+  const lvl = Math.round(240 - t * 220);
+  return { bg: `rgb(${lvl},${lvl},${lvl})`, ink: t > 0.5 ? '#fafafa' : '#141414' };
+}
+
+// A cell's readout is trustworthy when the same token persists across adjacent
+// layers AND the layer commits to it somewhere in that run (peak concentration).
+function verdict(run, conc) {
+  conc = conc == null ? 0 : conc;
+  const len = run ? run.len : 1;
+  const committed = len >= 3 && (run ? run.peak : conc) >= 0.6;
+  if (committed && conc >= 0.5) return { key: 'stable', tone: 'ok', label: `resolved — held ${len} layers` };
+  if (committed) return { key: 'stable', tone: 'ok', label: `part of a ${len}-layer run` };
+  if (conc >= 0.6) return { key: 'transient', tone: 'warn', label: 'confident but isolated — likely a lens artifact' };
+  return { key: 'noise', tone: 'mute', label: 'underdetermined — noise' };
+}
+
+function computeRuns(r) {
+  const asc = r.layers.slice().sort((a, b) => a - b);
+  const runs = {};
+  asc.forEach(L => { runs[String(L)] = new Array(r.tokens.length); });
+  for (let pos = 0; pos < r.tokens.length; pos++) {
+    const ids = asc.map(L => { const c = (r.grid[String(L)] || [])[pos]; return c && c[0] ? c[0].id : -999; });
+    const cc = asc.map(L => (r.conc ? (r.conc[String(L)] || [])[pos] : 0) || 0);
+    let i = 0;
+    while (i < asc.length) {
+      let j = i;
+      while (j + 1 < asc.length && ids[j + 1] === ids[i] && ids[i] !== -999) j++;
+      const len = j - i + 1;
+      let peak = 0;
+      for (let k = i; k <= j; k++) peak = Math.max(peak, cc[k]);
+      for (let k = i; k <= j; k++) runs[String(asc[k])][pos] = { len, peak };
+      i = j + 1;
+    }
+  }
+  return runs;
+}
+
+// Silent thoughts: tokens holding a top-k spot for >=3 consecutive layers in a
+// committed cell, not prompt words, surviving into the last few layers.
+function silentThoughts(r) {
+  const asc = r.layers.filter(L => L < r.n_layers - 1).sort((a, b) => a - b);
+  const promptIds = new Set(r.token_ids);
+  const saidIds = new Set((r.output && r.output.ids) || []);
+  const best = new Map();
+  for (let pos = 0; pos < r.tokens.length; pos++) {
+    const present = new Map();
+    asc.forEach((L, li) => {
+      const cell = (r.grid[String(L)] || [])[pos] || [];
+      const conc = ((r.conc || {})[String(L)] || [])[pos] || 0;
+      cell.forEach((c, k) => {
+        if (!present.has(c.id)) present.set(c.id, []);
+        present.get(c.id).push({ li, rank: k + 1, conc, t: c.t });
+      });
+    });
+    present.forEach((occ, id) => {
+      if (promptIds.has(id)) return;
+      const s = (occ[0].t || '').trim();
+      if (s.length < 2 || s === '\\n' || /[<>]/.test(s) || /^[\d\p{P}\p{S}]+$/u.test(s)) return;
+      let i = 0;
+      while (i < occ.length) {
+        let j = i;
+        while (j + 1 < occ.length && occ[j + 1].li === occ[j].li + 1) j++;
+        const run = occ.slice(i, j + 1);
+        if (run.length >= 3) {
+          const peak = Math.max(...run.map(o => o.conc));
+          const bestRank = Math.min(...run.map(o => o.rank));
+          if (peak >= 0.5) {
+            const cand = { id, t: occ[0].t, pos, len: run.length, bestRank,
+              l0: asc[run[0].li], l1: asc[run[run.length - 1].li], said: saidIds.has(id) };
+            const prev = best.get(id);
+            if (!prev || cand.len > prev.len || (cand.len === prev.len && cand.bestRank < prev.bestRank)) best.set(id, cand);
+          }
+        }
+        i = j + 1;
+      }
+    });
+  }
+  const lateBar = r.n_layers - 6;
+  return [...best.values()].filter(c => c.l1 >= lateBar)
+    .sort((a, b) => b.l1 - a.l1 || b.len - a.len || a.bestRank - b.bestRank).slice(0, 8);
+}
+
+async function refreshStatus() {
+  const pill = document.getElementById('pill');
+  try {
+    const r = (await api('/health')).body;
+    const ok = r.status === 'ready';
+    pill.className = 'pill ' + (ok ? 'ok' : r.status === 'error' ? 'bad' : '');
+    pill.innerHTML = `<span class="dot"></span><span>${ok ? 'engine ready — ' + esc((r.model || '').split('/').pop()) : 'engine ' + esc(r.status)}</span>`;
+    document.getElementById('run').disabled = !ok;
+  } catch (_) {
+    pill.className = 'pill bad';
+    pill.innerHTML = '<span class="dot"></span><span>no server at ' + esc(API) + '</span>';
+  }
+}
+refreshStatus(); setInterval(refreshStatus, 5000);
+
+async function runProbe(regen) {
+  regen = regen !== false;
+  const prompt = document.getElementById('prompt').value.trim();
+  if (!prompt) return;
+  const status = document.getElementById('run-status');
+  const btn = document.getElementById('run');
+  const prevOut = S.result && S.result.output;
+  const genN = regen ? (Number(document.getElementById('gen').value) || 0) : 0;
+  btn.disabled = true; status.textContent = genN ? 'thinking + generating…' : 'thinking…';
+  try {
+    const r = await post('/probe', {
+      prompt,
+      top_k: Number(document.getElementById('topk').value) || 5,
+      max_seq_len: Number(document.getElementById('maxlen').value) || 64,
+      gen_tokens: genN,
+      chat: document.getElementById('chat').checked,
+      pins: S.pins.map(p => p.id),
+      pin_words: S.pendingWord ? [S.pendingWord] : [],
+    });
+    if (!r.ok) { status.textContent = r.body.error || 'probe failed'; return; }
+    if (!regen && prevOut) r.body.output = prevOut;
+    (r.body.resolved_words || []).forEach(w => {
+      if (!S.pins.some(p => p.id === w.id)) { if (S.pins.length >= 8) S.pins.shift(); S.pins.push({ id: w.id, t: w.t }); }
+      if (S.pendingWord) S.spot = w.id;
+    });
+    S.pendingWord = null;
+    S.result = r.body;
+    status.textContent = `${r.body.tokens.length} tokens · ${r.body.layers.length} layers · ${r.body.seconds}s`;
+    const sl = document.getElementById('st-layer');
+    if (sl.dataset.auto === '1') sl.value = r.body.n_layers - 3;
+    renderAll();
+  } catch (e) { status.textContent = 'error: ' + e.message; }
+  finally { btn.disabled = false; }
+}
+
+function trackWord() {
+  const el = document.getElementById('word');
+  const w = (el.value || '').trim();
+  if (!w) return;
+  S.pendingWord = w; el.value = '';
+  runProbe(false);
+}
+
+function pin(id, t) {
+  if (id < 0) return;
+  if (S.pins.some(p => p.id === id)) {
+    S.pins = S.pins.filter(p => p.id !== id);
+    if (S.spot === id) S.spot = null;
+  } else { if (S.pins.length >= 8) S.pins.shift(); S.pins.push({ id, t }); }
+  runProbe(false);
+}
+
+function spotlight(id) { S.spot = (id == null || S.spot === id) ? null : id; renderAll(); }
+function silentSpot(id, t) {
+  if (!S.pins.some(p => p.id === id)) { if (S.pins.length >= 8) S.pins.shift(); S.pins.push({ id, t }); S.spot = id; runProbe(false); }
+  else { S.spot = (S.spot === id) ? null : id; renderAll(); }
+}
+function toggleFade() {
+  S.fadeNoise = !!document.getElementById('fade').checked;
+  document.getElementById('grid-scroll').classList.toggle('fade-on', S.fadeNoise);
+}
+
+function renderOutput(r) {
+  const o = r.output;
+  if (!o) return '';
+  if (o.error) return `<div class="card"><div class="card-label">Model output</div><div class="tone-warn" style="font-size:13px">couldn’t generate — ${esc(o.error)}</div></div>`;
+  return `<div class="card"><div class="card-label">What the model actually says <span style="color:var(--text3);font-weight:400">— greedy continuation</span></div>
+    <div class="say"><span class="prompt">${esc(r.tokens.slice(1).join(''))}</span><span class="gen">${esc(o.text)}</span></div></div>`;
+}
+
+function renderSilent(r) {
+  const items = silentThoughts(r);
+  if (!items.length) return '';
+  const hasGen = !!(r.output && r.output.ids && r.output.ids.length);
+  const chips = items.map(it => {
+    const tag = hasGen ? (it.said ? '<span class="said">said</span>' : '<span class="unsaid">never said</span>') : '';
+    return `<button class="chip${S.spot === it.id ? ' spot' : ''}" onclick="silentSpot(${it.id}, ${JSON.stringify(it.t).replace(/"/g, '&quot;')})">
+      <b>${showTok(it.t)}</b> · rank ${it.bestRank} · L${it.l0}–L${it.l1} ${tag}</button>`;
+  }).join('');
+  return `<div class="card"><div class="card-label">Silent thoughts <span style="color:var(--text3);font-weight:400">— in the workspace before a word was said</span></div>
+    <div>${chips}</div>
+    <div class="hint">Words (not from your prompt) that held a top-k spot in the readout for ≥3 straight layers in a committed cell and survived into the late layers. Click one to spotlight it.</div></div>`;
+}
+
+function renderAll() {
+  const out = document.getElementById('out');
+  const r = S.result;
+  if (!r) { out.innerHTML = ''; return; }
+  S.runs = computeRuns(r);
+  const layersDesc = r.layers.slice().sort((a, b) => b - a);
+  const finalLayer = r.n_layers - 1;
+  const spotPin = S.spot != null ? S.pins.find(p => p.id === S.spot) : null;
+  const fmtRank = rk => rk >= 100000 ? Math.round(rk / 1000) + 'k' : rk >= 10000 ? (rk / 1000).toFixed(0) + 'k' : rk >= 1000 ? (rk / 1000).toFixed(1) + 'k' : String(rk);
+  const vocabLog = Math.log10(524288);
+
+  let head = '<tr><th class="corner">layer ＼ pos</th>';
+  r.tokens.forEach((t, i) => { head += `<th title="pos ${i}">${i}<br><span style="color:var(--text3)">${showTok(t)}</span></th>`; });
+  head += '</tr>';
+
+  let rows = '';
+  layersDesc.forEach(layer => {
+    const cells = r.grid[String(layer)] || [];
+    const conc = r.conc ? (r.conc[String(layer)] || []) : [];
+    const spotRec = spotPin && r.pins[String(layer)] ? r.pins[String(layer)][String(S.spot)] : null;
+    const isFinal = layer === finalLayer;
+    rows += `<tr class="${isFinal ? 'final' : ''}"><th>${isFinal ? 'output L' + layer : 'L' + layer}</th>`;
+    cells.forEach((cell, pos) => {
+      const top = cell[0] || { t: '', p: 0, id: -1 };
+      const pinned = S.pins.some(p => p.id === top.id);
+      const run = (S.runs[String(layer)] || [])[pos];
+      const v = verdict(run, conc[pos]);
+      let style, sup = '1', cls = `cell ${v.key}`;
+      if (spotPin) {
+        const rank = spotRec ? spotRec.rank[pos] : null;
+        const heat = rank ? Math.max(0, 1 - Math.log10(rank) / vocabLog) : 0;
+        const pct = Math.round(Math.pow(heat, 1.6) * 88);
+        style = `background:color-mix(in srgb, var(--brand) ${pct}%, var(--surface));--cell-ink:${pct > 45 ? '#fafafa' : 'var(--text)'}`;
+        sup = rank ? fmtRank(rank) : '·';
+        cls = 'cell';
+      } else {
+        const sh = cellShade(top.p);
+        style = `background:${sh.bg};--cell-ink:${sh.ink}`;
+      }
+      rows += `<td class="${cls}${pinned ? ' pinned' : ''}" style="${style}"
+        onclick="pin(${top.id}, ${JSON.stringify(top.t).replace(/"/g, '&quot;')})"
+        onmousemove="tip(event,${layer},${pos})" onmouseleave="hideTip()">${showTok(top.t)}<sup>${sup}</sup></td>`;
+    });
+    rows += '</tr>';
+  });
+
+  const legend = spotPin
+    ? `<div class="legend"><span class="key-stable">🔦 spotlight: “${showTok(spotPin.t)}”</span>
+        <span>cold = far from the top of the vocab</span><div class="bar bar-spot"></div><span>hot = about to be said</span>
+        <button class="ghost" style="margin-left:auto" onclick="spotlight(null)">back to top-1 view</button></div>
+       <div class="hint">Heat = where “${showTok(spotPin.t)}” is latent — its rank in each layer's readout (superscript), even when it's not the top word.</div>`
+    : `<div class="legend"><span>less sure</span><div class="bar"></div><span>certain</span>
+        <span class="key-stable">▎ stable thought</span><span class="key-noise">underdetermined</span>
+        <label style="margin-left:auto;display:inline-flex;gap:6px;align-items:center;cursor:pointer">
+          <input type="checkbox" id="fade" ${S.fadeNoise ? 'checked' : ''} onchange="toggleFade()"> fade the noise</label></div>
+       <div class="hint">Shade = how sure the layer is of that word. A left stripe = the same word held ≥3 layers — a real forming thought. Faint italics = underdetermined junk. Hover for the verdict.</div>`;
+
+  out.innerHTML = `${renderOutput(r)}${renderSilent(r)}
+    <div class="card"><div class="card-label">Readout grid <span style="color:var(--text3);font-weight:400">— click a cell to track that word across layers</span></div>
+      <div class="grid-scroll${S.fadeNoise ? ' fade-on' : ''}" id="grid-scroll"><table class="grid"><thead>${head}</thead><tbody>${rows}</tbody></table></div>
+      ${legend}</div>
+    <div class="card" id="pins-card" style="${S.pins.length ? '' : 'display:none'}"></div>`;
+  renderPins();
+}
+
+function renderPins() {
+  const el = document.getElementById('pins-card');
+  if (!el || !S.pins.length) return;
+  const chips = S.pins.map(p =>
+    `<span class="pinchip${S.spot === p.id ? ' spot' : ''}">
+      <button title="spotlight" onclick="spotlight(${p.id})">🔦</button>${showTok(p.t)}
+      <button onclick="pin(${p.id}, ${JSON.stringify(p.t).replace(/"/g, '&quot;')})">×</button></span>`).join('');
+  el.innerHTML = `<div class="card-label">Tracked words — rank across layers <span style="color:var(--text3);font-weight:400">(rank 1 = top of vocabulary)</span></div>
+    <div style="margin:8px 0">${chips}</div><div id="spark"></div>`;
+  renderSpark(S.result);
+}
+
+function renderSpark(r) {
+  const host = document.getElementById('spark');
+  if (!host || !r || !r.pins) return;
+  const layers = r.layers.slice().sort((a, b) => a - b);
+  const W = host.clientWidth || 900, H = 220, mL = 44, mR = 90, mT = 12, mB = 26;
+  const x = i => mL + (W - mL - mR) * (i / Math.max(1, layers.length - 1));
+  const maxLog = Math.log10(524288);
+  const y = rank => mT + (H - mT - mB) * (Math.log10(Math.max(1, rank)) / maxLog);
+  const inks = ['#7a3ea3', '#6a6a6a', '#a33', '#16794a', '#a66300', '#3556a3', '#141414', '#0a7a7a'];
+  let g = '';
+  [1, 10, 100, 1000, 10000, 100000].forEach(rk => {
+    const yy = y(rk);
+    g += `<line class="grid-line" x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}"/><text x="${mL - 6}" y="${yy + 3}" text-anchor="end">${rk >= 1000 ? (rk / 1000) + 'k' : rk}</text>`;
+  });
+  layers.forEach((l, i) => { if (i % Math.ceil(layers.length / 12) === 0) g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">L${l}</text>`; });
+  let lines = '';
+  S.pins.forEach((pinTok, pi) => {
+    const ink = inks[pi % inks.length];
+    const pts = layers.map((l, i) => {
+      const rec = r.pins[String(l)] && r.pins[String(l)][String(pinTok.id)];
+      if (!rec) return null;
+      return { x: x(i), y: y(Math.min(...rec.rank)) };
+    }).filter(Boolean);
+    if (!pts.length) return;
+    lines += `<path d="${pts.map((p, k) => (k ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' ')}" stroke="${ink}"/>`;
+    pts.forEach(p => { lines += `<circle class="dot" cx="${p.x}" cy="${p.y}" fill="${ink}"/>`; });
+    lines += `<text x="${W - mR + 6}" y="${pts[pts.length - 1].y + 3}" style="fill:${ink}">${showTok(pinTok.t)}</text>`;
+  });
+  host.innerHTML = `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    ${g}<line class="axis" x1="${mL}" y1="${mT}" x2="${mL}" y2="${H - mB}"/>
+    <line class="axis" x1="${mL}" y1="${H - mB}" x2="${W - mR}" y2="${H - mB}"/>${lines}</svg>`;
+}
+
+async function runSteer() {
+  const word = (document.getElementById('st-word').value || '').trim();
+  const prompt = document.getElementById('prompt').value.trim();
+  const status = document.getElementById('st-status');
+  const out = document.getElementById('st-out');
+  if (!word || !prompt) { status.textContent = 'need a prompt and a word'; return; }
+  const btn = document.getElementById('st-run');
+  btn.disabled = true; status.textContent = 'generating baseline + steered…';
+  try {
+    const body = {
+      prompt, chat: document.getElementById('chat').checked, word,
+      layer: Number(document.getElementById('st-layer').value) || 0,
+      strength: Number(document.getElementById('st-str').value) || 0.1,
+      transport: document.getElementById('st-tr').value,
+      gen_tokens: Number(document.getElementById('gen').value) || 24,
+    };
+    const vs = (document.getElementById('st-vs').value || '').trim();
+    if (vs) body.vs_word = vs;
+    const r = await post('/steer', body);
+    if (!r.ok) { status.textContent = r.body.error || 'steer failed'; return; }
+    const d = r.body;
+    status.textContent = `${d.seconds}s`;
+    out.innerHTML = `<div class="steer-cmp">
+      <div><div class="steer-h">baseline</div><div class="say"><span style="font-weight:400">${esc(d.baseline)}</span></div></div>
+      <div><div class="steer-h">steered — “${showTok(d.token)}”${d.vs_token ? ' vs “' + showTok(d.vs_token) + '”' : ''} @ L${d.layer} × ${d.strength} (${esc(d.transport)})</div>
+        <div class="say"><span class="gen">${esc(d.steered)}</span></div></div></div>
+      <div style="font-size:12px;margin-top:6px" class="${d.changed ? 'tone-ok' : 'tone-mute'}">
+        ${d.changed ? '✔ the intervention changed the output — the direction is causally live at this layer' : '– no change at this strength'}</div>`;
+  } catch (e) { status.textContent = 'error: ' + e.message; }
+  finally { btn.disabled = false; }
+}
+
+function tip(ev, layer, pos) {
+  const r = S.result; if (!r) return;
+  const cell = (r.grid[String(layer)] || [])[pos]; if (!cell) return;
+  const run = (S.runs[String(layer)] || [])[pos];
+  const conc = r.conc ? (r.conc[String(layer)] || [])[pos] : null;
+  const v = verdict(run, conc);
+  const el = document.getElementById('tip');
+  el.innerHTML = `<div style="color:var(--text2);margin-bottom:4px">L${layer} · pos ${pos} “${showTok(r.tokens[pos])}”</div>` +
+    cell.map(c => `<div class="r"><span>${showTok(c.t)}</span><span>${(c.p * 100).toFixed(1)}%</span></div>`).join('') +
+    `<div class="tip-v tone-${v.tone}">${v.label}` + (conc != null ? ` · ${(conc * 100).toFixed(0)}% concentrated` : '') + `</div>`;
+  el.style.display = 'block';
+  el.style.left = Math.min(ev.clientX + 14, window.innerWidth - 295) + 'px';
+  el.style.top = (ev.clientY + 14) + 'px';
+}
+function hideTip() { document.getElementById('tip').style.display = 'none'; }
+</script>
+</body>
+</html>

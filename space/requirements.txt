@@ -1,0 +1,5 @@
+torch
+transformers>=4.51
+gradio>=6
+huggingface_hub
+jlens @ git+https://github.com/anthropics/jacobian-lens

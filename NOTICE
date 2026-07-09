@@ -1,0 +1,8 @@
+silent-thoughts
+Copyright 2026 Ophanim LLC
+
+This project builds on and adapts code from "jlens — Jacobian lens"
+(https://github.com/anthropics/jacobian-lens), Copyright 2026 Anthropic PBC,
+licensed under the Apache License, Version 2.0. The probe-server model-loading
+and readout paths are adapted from that reference implementation; the lens
+fitting itself is performed by the unmodified jlens package.
