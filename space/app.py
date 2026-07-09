@@ -197,7 +197,7 @@ def steer(prompt, chat, word, vs_word, layer, strength, transport, gen_tokens):
         d = _LENS.jacobians[layer].T @ w_row.cpu()
     else:
         d = w_row.cpu()
-    d = d / d.norm()
+    d = (d / d.norm()).to(_MODEL.input_device)
 
     text = prompt
     if chat:
