@@ -46,7 +46,16 @@ threading.Thread(target=_load, daemon=True).start()
 
 
 def _display_token(t):
-    return (t or "").replace("▁", " ").replace("Ġ", " ").replace("Ċ", "\\n").replace("<0x0A>", "\\n")
+    # Byte-level BPE tokens are mangled UTF-8 as raw strings — round-trip
+    # through the tokenizer for real characters.
+    if not t:
+        return ""
+    if t.startswith("<") and t.endswith(">"):
+        return "\\n" if t == "<0x0A>" else t
+    s = _TOK.convert_tokens_to_string([t])
+    if t.startswith("▁") and not s.startswith(" "):
+        s = " " + s
+    return s.replace("\n", "\\n")
 
 
 def _resolve_word(word):

@@ -250,9 +250,13 @@ function computeRuns(r) {
 function silentThoughts(r) {
   const asc = r.layers.filter(L => L < r.n_layers - 1).sort((a, b) => a - b);
   const promptIds = new Set(r.token_ids);
+  const promptWords = new Set(r.tokens.map(t => (t || '').trim().toLowerCase()));
   const saidIds = new Set((r.output && r.output.ids) || []);
   const best = new Map();
-  for (let pos = 0; pos < r.tokens.length; pos++) {
+  // Trailing positions only — where the resolved answer stages; whole-prompt
+  // mining surfaces the model chewing on its own system prompt.
+  const startPos = Math.max(0, r.tokens.length - 16);
+  for (let pos = startPos; pos < r.tokens.length; pos++) {
     const present = new Map();
     asc.forEach((L, li) => {
       const cell = (r.grid[String(L)] || [])[pos] || [];
@@ -264,8 +268,9 @@ function silentThoughts(r) {
     });
     present.forEach((occ, id) => {
       if (promptIds.has(id)) return;
-      const s = (occ[0].t || '').trim();
-      if (s.length < 2 || s === '\\n' || /[<>]/.test(s) || /^[\d\p{P}\p{S}]+$/u.test(s)) return;
+      const s = (occ[0].t || '').trim().replace(/\\n/g, '');
+      if (s.length < 2 || /[<>]/.test(s) || /^[\d\p{P}\p{S}]+$/u.test(s)) return;
+      if (promptWords.has(s.toLowerCase())) return;
       let i = 0;
       while (i < occ.length) {
         let j = i;
@@ -371,8 +376,10 @@ function renderOutput(r) {
   const o = r.output;
   if (!o) return '';
   if (o.error) return `<div class="card"><div class="card-label">Model output</div><div class="tone-warn" style="font-size:13px">couldn’t generate — ${esc(o.error)}</div></div>`;
+  let ptext = r.tokens.slice(1).join('').replace(/\\n/g, ' ');
+  if (ptext.length > 180) ptext = '…' + ptext.slice(-180);
   return `<div class="card"><div class="card-label">What the model actually says <span style="color:var(--text3);font-weight:400">— greedy continuation</span></div>
-    <div class="say"><span class="prompt">${esc(r.tokens.slice(1).join(''))}</span><span class="gen">${esc(o.text)}</span></div></div>`;
+    <div class="say"><span class="prompt">${esc(ptext)}</span><span class="gen">${esc(o.text)}</span></div></div>`;
 }
 
 function renderSilent(r) {

@@ -33,11 +33,11 @@ Combine the three statistics and you get an automatic workspace summary: every t
 
 | probe | silent thoughts found |
 |---|---|
-| boot riddle (chat) | Italy · eurozone · italy · shape · Currency · país · country |
-| "Abraham Lincoln was killed by" (raw) | assassinated · assassination · Abraham · Abram · John · जॉन |
-| boot riddle (raw completion) | Fact · Currency · Boot · Country — **topic words only, no answer** |
+| boot riddle (chat) | **Italy · 意大利 · イタリア** · eurozone · shape · país — the hidden hop, held in three scripts |
+| "Abraham Lincoln was killed by" (raw) | assassinated · assassination · **John · जॉन · 约翰** · Abram · assailant |
+| boot riddle (raw completion) | only junk fragments — **no semantic content survives at all** |
 
-That last row is a diagnosis at a glance — see finding 4.
+The model stages concepts multilingually (Italy and John each surface in three scripts), and the raw-completion row is a diagnosis at a glance — see finding 4.
 
 ### 3. Reading ≠ writing: the average Jacobian is a good reader and a bad writer
 

@@ -70,9 +70,15 @@ def silent_thoughts(r, cap=8):
     not prompt words, surviving into the last 6 layers."""
     asc = sorted(L for L in r["layers"] if L < r["n_layers"] - 1)
     prompt_ids = set(r["token_ids"])
+    # also drop case/spacing variants of prompt words (' What' vs 'What')
+    prompt_words = {t.strip().lower() for t in r["tokens"]}
     said_ids = set(((r.get("output") or {}).get("ids")) or [])
     best = {}
-    for pos in range(len(r["tokens"])):
+    # Only the trailing positions: that's where the resolved answer stages
+    # (causal attention). Mining the whole prompt surfaces the model chewing on
+    # its own system prompt ("knowledgeable", "helpful"...) — honest but noise.
+    start_pos = max(0, len(r["tokens"]) - 16)
+    for pos in range(start_pos, len(r["tokens"])):
         present = {}
         for li, L in enumerate(asc):
             cell = r["grid"].get(str(L), [])
@@ -85,8 +91,10 @@ def silent_thoughts(r, cap=8):
         for tid, occ in present.items():
             if tid in prompt_ids:
                 continue
-            s = (occ[0][3] or "").strip()
-            if len(s) < 2 or s == "\\n" or "<" in s or ">" in s:
+            s = (occ[0][3] or "").strip().replace("\\n", "")
+            if len(s) < 2 or "<" in s or ">" in s:
+                continue
+            if s.lower() in prompt_words:
                 continue
             if all(not ch.isalpha() for ch in s):
                 continue
@@ -121,7 +129,9 @@ def render_output(r):
     o = r.get("output")
     if not o or o.get("error"):
         return ""
-    prompt_text = "".join(r["tokens"][1:])
+    prompt_text = "".join(r["tokens"][1:]).replace("\\n", " ")
+    if len(prompt_text) > 180:  # chat templates prepend a whole system prompt
+        prompt_text = "…" + prompt_text[-180:]
     return f"""<div class="stcard"><div class="stlabel">What the model actually says</div>
       <div class="stsay"><span class="stprompt">{_esc(prompt_text)}</span><span class="stgen">{_esc(o["text"])}</span></div></div>"""
 
@@ -190,6 +200,7 @@ CSS = """
 .stscroll { overflow: auto; max-height: 640px; border: 1px solid #d8d8d2; border-radius: 10px; }
 table.stgrid { border-collapse: collapse; font-family: ui-monospace, monospace; font-size: 11px; }
 table.stgrid th { background: #f4f4f1; color: #4b4b52; font-weight: 500; padding: 4px 6px; white-space: nowrap; position: sticky; top: 0; }
+table.stgrid td { background: #fff; color: #16161a; padding: 2px 6px; }
 table.stgrid tbody th { position: sticky; left: 0; text-align: right; }
 table.stgrid th.stcorner { left: 0; z-index: 2; }
 .stdim { color: #9a9aa2; }

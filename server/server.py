@@ -66,8 +66,18 @@ def load_everything():
 
 
 def display_token(tok_str: str) -> str:
-    # SentencePiece '▁' and BPE 'Ġ' are leading spaces; newlines are byte tokens.
-    return (tok_str or "").replace("▁", " ").replace("Ġ", " ").replace("Ċ", "\\n").replace("<0x0A>", "\\n")
+    """Human-readable form of one raw token string. Byte-level BPE tokens
+    (GPT-2/Qwen style) are mangled UTF-8 as raw strings — round-trip through
+    the tokenizer to get real characters. SentencePiece word-initial spaces
+    are re-added (convert_tokens_to_string strips them)."""
+    if not tok_str:
+        return ""
+    if tok_str.startswith("<") and tok_str.endswith(">"):
+        return "\\n" if tok_str == "<0x0A>" else tok_str
+    s = TOK.convert_tokens_to_string([tok_str])
+    if tok_str.startswith("▁") and not s.startswith(" "):
+        s = " " + s
+    return s.replace("\n", "\\n")
 
 
 def resolve_word(word):
