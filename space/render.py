@@ -198,12 +198,13 @@ CSS = """
 .stcard a { color: #7a3ea3 !important; }
 .stlabel { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #8a8a92 !important; margin-bottom: 8px; }
 .stsay { font-size: 15px; line-height: 1.7; border-left: 3px solid #7a3ea3; padding-left: 12px; word-break: break-word; color: #16161a !important; }
-.stprompt { color: #9a9aa2 !important; }
+.stbody { color: #16161a !important; }   /* dark body text — needs a class to beat Gradio's theme */
+.stprompt { color: #6b6b72 !important; }
 .stgen { font-weight: 600; background: #7a3ea3 !important; color: #fff !important; border-radius: 4px; padding: 1px 7px; }
 .stchip { display: inline-block; margin: 0 6px 6px 0; padding: 4px 11px; border-radius: 999px; border: 1px solid #d8d8d2; font-size: 13px; font-family: ui-monospace, monospace; background: #f4f4f1 !important; color: #4b4b52 !important; }
 .stchip b { color: #16161a !important; }
 .stsaid { color: #169455 !important; font-size: 11px; } .stunsaid { color: #b07914 !important; font-size: 11px; font-style: italic; }
-.sthint { font-size: 12px; color: #8a8a92 !important; margin-top: 6px; }
+.sthint { font-size: 12px; color: #57575e !important; margin-top: 6px; }
 .stscroll { overflow: auto; max-height: 640px; border: 1px solid #d8d8d2; border-radius: 10px; }
 table.stgrid { border-collapse: collapse; font-family: ui-monospace, monospace; font-size: 11px; }
 table.stgrid th { background: #f4f4f1 !important; color: #4b4b52 !important; font-weight: 500; padding: 4px 6px; white-space: nowrap; position: sticky; top: 0; }
@@ -231,7 +232,7 @@ def render_example(path):
         d = json.load(f)
     m = d.get("meta", {})
     head = f"""<div class="stcard"><div class="stlabel">{_esc(m.get("title", path))}</div>
-      <div style="font-size:14px"><b>Prompt:</b> {_esc(m.get("prompt", ""))} <span class="stdim">({'chat template' if m.get('chat') else 'raw completion'})</span></div>
+      <div class="stbody" style="font-size:14px"><b>Prompt:</b> {_esc(m.get("prompt", ""))} <span class="stdim">({'chat template' if m.get('chat') else 'raw completion'})</span></div>
       <div class="sthint">{_esc(m.get("notes", ""))}</div>
       <div class="sthint">Model: {_esc(m.get("model", ""))}</div></div>"""
     return head + render_probe(d)

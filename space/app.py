@@ -238,7 +238,7 @@ def _do_steer(prompt, chat, word, vs_word, layer, strength, transport, gen_token
     tone = "#169455" if changed else "#8a8a92"
     return f"""<div class="stcard"><div class="stlabel">Steer — “{tok_label}”{vs_label} @ L{layer} × {strength} ({render._esc(transport)})</div>
       <div class="stcmp">
-        <div><div class="sthd">baseline</div><div class="stsay"><span>{render._esc(baseline)}</span></div></div>
+        <div><div class="sthd">baseline</div><div class="stsay"><span class="stbody">{render._esc(baseline)}</span></div></div>
         <div><div class="sthd">steered</div><div class="stsay"><span class="stgen">{render._esc(steered)}</span></div></div>
       </div>
       <div style="font-size:12px;margin-top:6px;color:{tone}">{verdict}</div></div>"""
