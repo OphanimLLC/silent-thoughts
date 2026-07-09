@@ -1,6 +1,6 @@
-# silent-thoughts
+# Silent Thoughts and Their Hijacking — A Dangerous Game (PoC)
 
-**An interactive workbench for the Jacobian lens — watch a language model's thoughts form before it speaks.**
+**An interactive workbench for the Jacobian lens — watch a language model's silent thoughts (its *kernel* / *J-space* / *subconscious*) form before it speaks, catch a prompt-injection commit there, and rewrite the decision in place.**
 
 Built on Anthropic's [jlens / jacobian-lens](https://github.com/anthropics/jacobian-lens) reference implementation ([*Verbalizable Representations Form a Global Workspace in Language Models*](https://transformer-circuits.pub/2026/workspace/index.html)). The lens linearly transports a residual-stream vector at any layer into the final-layer basis and decodes it with the model's own unembedding — so every cell in the grid below is "the word this layer is disposed to say," *before anything is said*.
 

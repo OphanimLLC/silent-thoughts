@@ -1,5 +1,5 @@
 ---
-title: silent-thoughts
+title: Silent Thoughts and Their Hijacking — A Dangerous Game (PoC)
 emoji: 🔦
 colorFrom: purple
 colorTo: gray
@@ -8,10 +8,10 @@ sdk_version: 6.20.0
 app_file: app.py
 pinned: false
 license: apache-2.0
-short_description: See a model's thoughts form, then steer them
+short_description: Read a model's subconscious, then hijack and rewrite it
 ---
 
-# silent-thoughts
+# Silent Thoughts and Their Hijacking — A Dangerous Game (PoC)
 
 An interactive workbench for [Anthropic's Jacobian lens](https://github.com/anthropics/jacobian-lens)
 (*Verbalizable Representations Form a Global Workspace in Language Models*).

@@ -162,15 +162,12 @@ def probe(prompt, chat, top_k, gen_tokens, track_words):
     return render.render_probe(r) + extra
 
 
-@spaces.GPU(duration=60)
-def steer(prompt, chat, word, vs_word, layer, strength, transport, gen_tokens):
+def _do_steer(prompt, chat, word, vs_word, layer, strength, transport, gen_tokens):
     """Causal test: inject the word's (centered) direction at one layer, at the
     last position only, and compare greedy continuations. transport='direct'
     reliably flips answers at late layers; 'jacobian' writes through J^T — the
-    instructive comparison (see finding 3)."""
-    if not _STATE["ready"]:
-        msg = _STATE["error"] or "model still loading — try again in ~30s"
-        return f"<div class='stcard'>{render._esc(msg)}</div>"
+    instructive comparison (see finding 3). Shared by the Steer button and the
+    Kernel-monitor rewrite loop."""
     word = (word or "").strip()
     prompt = (prompt or "").strip()
     if not word or not prompt:
@@ -245,6 +242,13 @@ def steer(prompt, chat, word, vs_word, layer, strength, transport, gen_tokens):
         <div><div class="sthd">steered</div><div class="stsay"><span class="stgen">{render._esc(steered)}</span></div></div>
       </div>
       <div style="font-size:12px;margin-top:6px;color:{tone}">{verdict}</div></div>"""
+
+
+@spaces.GPU(duration=60)
+def steer(prompt, chat, word, vs_word, layer, strength, transport, gen_tokens):
+    if not _STATE["ready"]:
+        return f"<div class='stcard'>{render._esc(_STATE['error'] or 'model still loading — try again in ~30s')}</div>"
+    return _do_steer(prompt, chat, word, vs_word, layer, strength, transport, gen_tokens)
 
 
 def render_steering_example(path):

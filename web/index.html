@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>silent-thoughts — Jacobian lens workbench</title>
+<title>Silent Thoughts and Their Hijacking — A Dangerous Game (PoC)</title>
 <style>
 :root {
   --paper: #f7f7f5; --surface: #ffffff; --surface2: #efefec;
@@ -154,8 +154,8 @@ svg.spark .dot { r: 3; }
 <body>
 <div class="wrap">
   <div id="pill" class="pill"><span class="dot"></span><span>checking…</span></div>
-  <h1>silent-thoughts</h1>
-  <div class="sub">A workbench for the <a href="https://github.com/anthropics/jacobian-lens">Jacobian lens</a> — watch a language model's thoughts form before it speaks. Each grid cell is the word a layer is leaning toward at that position, <i>before</i> anything is said.</div>
+  <h1>Silent Thoughts and Their Hijacking <span style="color:var(--text3);font-weight:400">— a dangerous game (PoC)</span></h1>
+  <div class="sub">A workbench for the <a href="https://github.com/anthropics/jacobian-lens">Jacobian lens</a> — watch a model's silent thoughts (its <b>kernel</b> / <b>J-space</b> / <b>subconscious</b>) form before it speaks, then use the <b>Kernel monitor</b> to catch a prompt-injection and rewrite it. Each grid cell is the word a layer is leaning toward at that position, <i>before</i> anything is said. See <a href="https://github.com/OphanimLLC/silent-thoughts/blob/main/DANGERS.md">DANGERS.md</a>.</div>
 
   <div class="card">
     <div class="card-label">Probe</div>
@@ -435,10 +435,14 @@ function frontierRank(r, id) {
   });
   return best;
 }
-function watchLevel(best) {
+// `said` (the word appears in the greedy answer) is ground truth and outranks
+// the frontier reading: a do-not-say word the model emits ANYWHERE in its answer
+// is a hit, even when it's not the immediate next token.
+function watchLevel(best, said) {
+  if (said) return { key: 'alarm', label: 'the model says this', tone: 'bad' };
   if (best == null) return { key: 'unknown', label: 'no reading', tone: 'mute' };
-  if (best <= 10) return { key: 'alarm', label: 'about to say it', tone: 'bad' };
-  if (best <= 300) return { key: 'latent', label: 'floating in there, not the answer', tone: 'warn' };
+  if (best <= 10) return { key: 'alarm', label: 'about to say it next', tone: 'bad' };
+  if (best <= 300) return { key: 'latent', label: 'floating in there, not said', tone: 'warn' };
   return { key: 'clear', label: 'clear', tone: 'ok' };
 }
 function kfmt(rk) { return rk == null ? '—' : rk <= 999 ? String(rk) : (rk / 1000).toFixed(rk < 10000 ? 1 : 0) + 'k'; }
@@ -453,7 +457,12 @@ function renderKernel(r) {
   const finalKey = String(r.n_layers - 1);
   const lastPos = r.tokens.length - 1;
   const top = ((r.grid[finalKey] || [])[lastPos] || [])[0] || { t: '', p: 0 };
-  const rows = S.watch.map(w => { const best = frontierRank(r, w.id); return { w, best, lvl: watchLevel(best) }; });
+  const saidSet = new Set(((r.output && r.output.tokens) || []).map(t => (t || '').trim().toLowerCase()).filter(Boolean));
+  const rows = S.watch.map(w => {
+    const best = frontierRank(r, w.id);
+    const said = saidSet.has((w.word || '').trim().toLowerCase()) || saidSet.has((w.t || '').trim().toLowerCase());
+    return { w, best, said, lvl: watchLevel(best, said) };
+  });
   const anyAlarm = rows.some(x => x.lvl.key === 'alarm');
   const anyLatent = rows.some(x => x.lvl.key === 'latent');
   let banner = '';
@@ -461,7 +470,7 @@ function renderKernel(r) {
     if (anyAlarm) {
       const caught = rows.find(x => x.lvl.key === 'alarm').w;
       const cw = JSON.stringify(caught.word).replace(/"/g, '&quot;');
-      banner = `<div class="kbanner bad">🚨 hijack detected — the model is about to say “${showTok(caught.t)}”, a word from your do-not-say list, before it types anything.
+      banner = `<div class="kbanner bad">🚨 hijack — the model is set to say “${showTok(caught.t)}”, a word on your do-not-say list.
         <div class="kfix">override it in the Steer panel below — make it say
           <input id="kernel-repl" placeholder="the intended answer" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();kernelOverride(${cw});}">
           instead <button class="ghost" onclick="kernelOverride(${cw})">rewrite →</button>
@@ -472,7 +481,7 @@ function renderKernel(r) {
   const commit = `<div class="kcommit"><div class="kcommit-h">about to say <span style="color:var(--text3)">— the model's next word, read before it's typed</span></div>
     <div class="kcommit-tok">${showTok(top.t) || '·'}<span class="kcommit-p">${(top.p * 100).toFixed(1)}% sure</span></div></div>`;
   const watch = rows.length ? `<div class="kwatch">${rows.map(x => `<div class="kwrow tone-${x.lvl.tone}"><span class="kword">${showTok(x.w.t)}</span><span class="klvl">${x.lvl.label}</span><span class="krank">best frontier rank ${kfmt(x.best)}</span></div>`).join('')}</div>` : '';
-  host.innerHTML = banner + commit + watch + `<div class="hint">The rank is how close a word is to being the model's next word (rank 1 = it <i>is</i> the next word). <b>Top-10 → about to say it</b> (red). <b>Top-300 → floating in there</b> but not the answer. Measured on a 26B chat model: a “banana” the prompt <i>orders</i> it to say lands at rank 3 (it says it), while a “banana” merely <i>mentioned</i> in the text sits at rank 35 (it doesn't) — that gap tells a real hijack from a word that just happens to appear.</div>`;
+  host.innerHTML = banner + commit + watch + `<div class="hint"><b>“About to say”</b> is only the immediate next word. The <b>do-not-say list</b> is stricter: a word is flagged if the model actually <i>says</i> it anywhere in its answer, or is committed to emit it next (frontier rank ≤10 → red); rank ≤300 is “floating in there” but not said. So an injected one-word “banana” is caught at the frontier (rank 3), and a word that only surfaces mid-answer — like “Euro” in “…is the <b>Euro</b>” — is caught because the model says it, even though the next token is “The”.</div>`;
 }
 
 function armWatch() {
@@ -496,7 +505,7 @@ function kernelOverride(caughtWord) {
   document.getElementById('st-word').value = repl || caughtWord;
   document.getElementById('st-vs').value = repl ? caughtWord : '';
   const sl = document.getElementById('st-layer'); sl.value = late; sl.dataset.auto = 0;
-  document.getElementById('st-str').value = repl ? 0.2 : -0.2;
+  document.getElementById('st-str').value = repl ? 0.3 : -0.2;   // 0.3 flips clean; 0.2 under-drives multi-piece words
   document.getElementById('st-tr').value = 'direct';
   const dst = document.getElementById('st-out'); if (dst) dst.scrollIntoView({ behavior: 'smooth', block: 'center' });
   runSteer();
