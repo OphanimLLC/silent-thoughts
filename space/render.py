@@ -192,7 +192,10 @@ def render_grid(r, max_cols=48):
 
 
 CSS = """
-.stcard { border: 1px solid #d8d8d2; border-radius: 12px; padding: 12px 14px; margin: 10px 0; background: #fff; }
+/* Cards are always light — pin the text dark too, or HF's dark theme makes
+   unstyled text inherit near-white and vanish (white-on-white). */
+.stcard { border: 1px solid #d8d8d2; border-radius: 12px; padding: 12px 14px; margin: 10px 0; background: #fff; color: #16161a; }
+.stcard a { color: #7a3ea3; }
 .stlabel { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #8a8a92; margin-bottom: 8px; }
 .stsay { font-size: 15px; line-height: 1.55; border-left: 3px solid #7a3ea3; padding-left: 12px; word-break: break-word; }
 .stprompt { color: #9a9aa2; } .stgen { font-weight: 600; background: rgba(122,62,163,.12); border-radius: 3px; }
