@@ -89,8 +89,17 @@ def probe(prompt, chat, top_k, gen_tokens, track_words):
 
     text = prompt
     if chat:
-        text = _TOK.apply_chat_template(
-            [{"role": "user", "content": prompt}], add_generation_prompt=True, tokenize=False)
+        # Explicit neutral system message — otherwise Qwen's template injects
+        # its branded default ("You are Qwen, created by Alibaba Cloud...").
+        # Some templates reject system roles; fall back to user-only.
+        try:
+            text = _TOK.apply_chat_template(
+                [{"role": "system", "content": "You are a helpful assistant."},
+                 {"role": "user", "content": prompt}],
+                add_generation_prompt=True, tokenize=False)
+        except Exception:
+            text = _TOK.apply_chat_template(
+                [{"role": "user", "content": prompt}], add_generation_prompt=True, tokenize=False)
 
     with _LOCK:
         lens_logits, model_logits, input_ids = _LENS.apply(_MODEL, text, max_seq_len=96)

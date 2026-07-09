@@ -376,7 +376,8 @@ function renderOutput(r) {
   const o = r.output;
   if (!o) return '';
   if (o.error) return `<div class="card"><div class="card-label">Model output</div><div class="tone-warn" style="font-size:13px">couldn’t generate — ${esc(o.error)}</div></div>`;
-  let ptext = r.tokens.slice(1).join('').replace(/\\n/g, ' ');
+  let ptext = r.tokens.slice(1).join('').replace(/\\n/g, ' ')
+    .replace(/<\|[^>]*\|>/g, ' · ').replace(/(\s*·\s*)+/g, ' · ').replace(/^\s*·\s*|\s*·\s*$/g, '');
   if (ptext.length > 180) ptext = '…' + ptext.slice(-180);
   return `<div class="card"><div class="card-label">What the model actually says <span style="color:var(--text3);font-weight:400">— greedy continuation</span></div>
     <div class="say"><span class="prompt">${esc(ptext)}</span><span class="gen">${esc(o.text)}</span></div></div>`;

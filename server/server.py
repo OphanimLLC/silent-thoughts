@@ -80,6 +80,21 @@ def display_token(tok_str: str) -> str:
     return s.replace("\n", "\\n")
 
 
+def apply_chat(prompt):
+    """Chat-template the prompt with a neutral system message (otherwise some
+    templates inject a branded default — Qwen's names Alibaba Cloud). Templates
+    that reject system roles (e.g. gemma) fall back to user-only."""
+    try:
+        return TOK.apply_chat_template(
+            [{"role": "system", "content": "You are a helpful assistant."},
+             {"role": "user", "content": prompt}],
+            add_generation_prompt=True, tokenize=False)
+    except Exception:
+        return TOK.apply_chat_template(
+            [{"role": "user", "content": prompt}],
+            add_generation_prompt=True, tokenize=False)
+
+
 def resolve_word(word):
     """Map a typed word to the single token id the lens should track. Prefers
     the leading-space variant (how words appear mid-sentence); multi-token
@@ -113,10 +128,7 @@ def do_probe(body):
     pins = pins[:8]
 
     if body.get("chat"):
-        prompt = TOK.apply_chat_template(
-            [{"role": "user", "content": prompt}],
-            add_generation_prompt=True, tokenize=False,
-        )
+        prompt = apply_chat(prompt)
 
     t0 = time.time()
     lens_logits, model_logits, input_ids = LENS.apply(MODEL, prompt, max_seq_len=max_seq_len)
@@ -216,10 +228,7 @@ def do_steer(body):
 
     prompt = body["prompt"]
     if body.get("chat"):
-        prompt = TOK.apply_chat_template(
-            [{"role": "user", "content": prompt}],
-            add_generation_prompt=True, tokenize=False,
-        )
+        prompt = apply_chat(prompt)
     layer = int(body["layer"])
     if layer not in LENS.source_layers:
         raise ValueError(f"layer {layer} not fitted ({LENS.source_layers[0]}..{LENS.source_layers[-1]})")

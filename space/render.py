@@ -5,6 +5,7 @@
 import html
 import json
 import math
+import re
 
 
 def _esc(s):
@@ -130,6 +131,8 @@ def render_output(r):
     if not o or o.get("error"):
         return ""
     prompt_text = "".join(r["tokens"][1:]).replace("\\n", " ")
+    prompt_text = re.sub(r"<\|[^>]*\|>", " · ", prompt_text)   # hide template markers
+    prompt_text = re.sub(r"(\s*·\s*)+", " · ", prompt_text).strip(" ·")
     if len(prompt_text) > 180:  # chat templates prepend a whole system prompt
         prompt_text = "…" + prompt_text[-180:]
     return f"""<div class="stcard"><div class="stlabel">What the model actually says</div>
