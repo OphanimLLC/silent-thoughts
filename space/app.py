@@ -325,8 +325,8 @@ with gr.Blocks(title="silent-thoughts") as demo:
             "a readout alone can't give you. A word's (centered) output direction is injected into the residual "
             "stream at one layer, last position only, and the greedy answer is regenerated. "
             "**direct** reliably flips answers at late layers (defaults below flip Paris → Rome); "
-            "**jacobian** writes through Jᵀ — on the 26B it *never* steers (finding 3), on this dense 0.5B "
-            "it works weakly at ~2× strength. Reading is easy; writing is where it gets interesting.")
+            "**jacobian** writes through Jᵀ — on the 26B MoE it *never* steers (finding 3), while on this "
+            "dense 0.5B it does work at the last fitted layer. Reading is easy; writing is where it gets interesting.")
         with gr.Row():
             st_word = gr.Textbox(label="push toward", value="Rome")
             st_vs = gr.Textbox(label="against (optional)", value="Paris")
