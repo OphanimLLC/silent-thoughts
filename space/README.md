@@ -8,7 +8,7 @@ sdk_version: 6.20.0
 app_file: app.py
 pinned: false
 license: apache-2.0
-short_description: Watch a model's thoughts form before it speaks — then steer them
+short_description: See a model's thoughts form, then steer them
 ---
 
 # silent-thoughts
