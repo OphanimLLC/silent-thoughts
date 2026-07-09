@@ -116,6 +116,12 @@ svg.spark .axis { stroke: var(--border-strong); stroke-width: 1; }
 svg.spark path { fill: none; stroke-width: 2; }
 svg.spark .dot { r: 3; }
 
+/* mode tabs */
+.tabs { display: flex; gap: 8px; margin: 4px 0 16px; }
+.tab { padding: 8px 18px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text2); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.tab:hover { border-color: var(--brand); color: var(--text); }
+.tab.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
 /* kernel monitor */
 .kbanner { margin: 10px 0 4px; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); }
 .kbanner.bad  { color:#c04444; background: color-mix(in srgb,#c04444 10%, transparent); border-color: color-mix(in srgb,#c04444 40%, var(--border)); }
@@ -177,6 +183,12 @@ svg.spark .dot { r: 3; }
     </div>
   </div>
 
+  <div class="tabs">
+    <button class="tab active" id="tab-hijack" onclick="mode('hijack')">🎯 Hijack lab</button>
+    <button class="tab" id="tab-explore" onclick="mode('explore')">🔬 Explore</button>
+  </div>
+
+  <div id="mode-hijack">
   <div class="card">
     <div class="card-label">Kernel monitor — catch a hijacked answer before it's typed
       <span style="color:var(--text3);font-weight:400">— peek at the word the model is leaning toward saying next. If it's about to blurt out something on your do-not-say list, you get a red flag <i>before</i> it types anything, and one click rewrites it. See <a href="https://github.com/OphanimLLC/silent-thoughts/blob/main/DANGERS.md">DANGERS.md</a> for why this cuts both ways.</span></div>
@@ -190,7 +202,14 @@ svg.spark .dot { r: 3; }
     </div>
     <div id="kernel-out"></div>
   </div>
+  <div class="card" id="hijack-rewrite" style="display:none">
+    <div class="card-label">Rewrite — the write half of the loop <span style="color:var(--text3);font-weight:400">— override the committed answer in place</span></div>
+    <div id="hijack-steer-status" style="font-size:13px;color:var(--text2)"></div>
+    <div id="hijack-steer-out"></div>
+  </div>
+  </div>
 
+  <div id="mode-explore" style="display:none">
   <details class="explain">
     <summary>How to read this — signal vs. noise</summary>
     <div class="explain-body">
@@ -222,8 +241,9 @@ svg.spark .dot { r: 3; }
       <button id="st-run" onclick="runSteer()">Steer →</button>
       <span id="st-status" style="font-size:13px;color:var(--text2)"></span>
     </div>
-    <div class="hint">Uses the prompt above. <b>direct</b> adds the word's centered output direction — reliably flips answers in the last few layers. <b>jacobian</b> writes through J<sup>T</sup> — in our experiments it never steers, only derails (see README). Strength is a fraction of the residual norm; 0.05–0.2 is the useful range; negative pushes <i>away</i> from a word (suppresses it, but tends to garble output). This is the <b>write</b> half of the loop — the Kernel monitor above reads what the model is about to say; its <b>rewrite →</b> button drives this panel to silently override that answer.</div>
+    <div class="hint">Uses the prompt above. <b>direct</b> adds the word's centered output direction — reliably flips answers in the last few layers. <b>jacobian</b> writes through J<sup>T</sup> — in our experiments it never steers, only derails (see README). Strength is a fraction of the residual norm; 0.05–0.2 is the useful range; negative pushes <i>away</i> from a word (suppresses it, but tends to garble output). This is the manual <b>write</b> tool; the <b>Hijack lab</b> tab drives the same machinery from a caught word with one click (<b>rewrite →</b>).</div>
     <div id="st-out"></div>
+  </div>
   </div>
 
   <div class="hint" style="margin-bottom:24px">Server: <code id="api-label"></code> — change with <code>localStorage.setItem('st-api', 'http://host:port')</code>. Run one with <code>python server/server.py --model &lt;hf-model&gt; --lens &lt;lens.pt&gt;</code>.</div>
@@ -454,6 +474,7 @@ function kfmt(rk) { return rk == null ? '—' : rk <= 999 ? String(rk) : (rk / 1
 function renderKernel(r) {
   const host = document.getElementById('kernel-out');
   if (!host) return;
+  const rw = document.getElementById('hijack-rewrite'); if (rw) rw.style.display = 'none';   // reset stale rewrite
   if (!r) {
     host.innerHTML = `<div class="hint" style="margin-top:10px">Run a probe above, then check back here. This reads the model's <b>subconscious</b> — the word it has already picked to say next, before it types a single character. Add words it should never say; if the model is secretly about to say one (a telltale that a hidden instruction slipped into the prompt), it lights up red and you can rewrite it. Hit <b>↯ injection demo</b> to watch it fire.</div>`;
     return;
@@ -506,15 +527,20 @@ function kernelDemo() {
 // override it. Steering TOWARD a replacement is the clean rewrite; pushing AWAY
 // (no replacement, negative strength) suppresses the word but garbles output.
 function kernelOverride(caughtWord) {
+  const prompt = document.getElementById('prompt').value.trim();
+  if (!prompt) return;
   const repl = ((document.getElementById('kernel-repl') || {}).value || '').trim();
   const late = S.result ? Math.max(0, S.result.n_layers - 2) : 21;
-  document.getElementById('st-word').value = repl || caughtWord;
-  document.getElementById('st-vs').value = repl ? caughtWord : '';
-  const sl = document.getElementById('st-layer'); sl.value = late; sl.dataset.auto = 0;
-  document.getElementById('st-str').value = repl ? 0.3 : -0.2;   // 0.3 flips clean; 0.2 under-drives multi-piece words
-  document.getElementById('st-tr').value = 'direct';
-  const dst = document.getElementById('st-out'); if (dst) dst.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  runSteer();
+  const body = {
+    prompt, chat: document.getElementById('chat').checked,
+    word: repl || caughtWord, layer: late,
+    strength: repl ? 0.3 : -0.2, transport: 'direct',   // 0.3 flips clean; negative = push-away
+    gen_tokens: Number(document.getElementById('gen').value) || 24,
+  };
+  if (repl) body.vs_word = caughtWord;
+  const card = document.getElementById('hijack-rewrite');
+  if (card) { card.style.display = ''; setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 30); }
+  doSteerRun(body, document.getElementById('hijack-steer-status'), document.getElementById('hijack-steer-out'), null);
 }
 
 function renderOutput(r) {
@@ -653,36 +679,49 @@ function renderSpark(r) {
     <line class="axis" x1="${mL}" y1="${H - mB}" x2="${W - mR}" y2="${H - mB}"/>${lines}</svg>`;
 }
 
-async function runSteer() {
-  const word = (document.getElementById('st-word').value || '').trim();
-  const prompt = document.getElementById('prompt').value.trim();
-  const status = document.getElementById('st-status');
-  const out = document.getElementById('st-out');
-  if (!word || !prompt) { status.textContent = 'need a prompt and a word'; return; }
-  const btn = document.getElementById('st-run');
-  btn.disabled = true; status.textContent = 'generating baseline + steered…';
+// Shared steer runner — Explore Steer panel and Hijack-lab one-click rewrite.
+async function doSteerRun(body, statusEl, outEl, btn) {
+  if (btn) btn.disabled = true;
+  if (statusEl) statusEl.textContent = 'generating baseline + steered…';
   try {
-    const body = {
-      prompt, chat: document.getElementById('chat').checked, word,
-      layer: Number(document.getElementById('st-layer').value) || 0,
-      strength: Number(document.getElementById('st-str').value) || 0.1,
-      transport: document.getElementById('st-tr').value,
-      gen_tokens: Number(document.getElementById('gen').value) || 24,
-    };
-    const vs = (document.getElementById('st-vs').value || '').trim();
-    if (vs) body.vs_word = vs;
     const r = await post('/steer', body);
-    if (!r.ok) { status.textContent = r.body.error || 'steer failed'; return; }
+    if (!r.ok) { if (statusEl) statusEl.textContent = r.body.error || 'steer failed'; return; }
     const d = r.body;
-    status.textContent = `${d.seconds}s`;
-    out.innerHTML = `<div class="steer-cmp">
+    if (statusEl) statusEl.textContent = `${d.seconds}s`;
+    outEl.innerHTML = `<div class="steer-cmp">
       <div><div class="steer-h">baseline</div><div class="say"><span style="font-weight:400">${esc(d.baseline)}</span></div></div>
       <div><div class="steer-h">steered — “${showTok(d.token)}”${d.vs_token ? ' vs “' + showTok(d.vs_token) + '”' : ''} @ L${d.layer} × ${d.strength} (${esc(d.transport)})</div>
         <div class="say"><span class="gen">${esc(d.steered)}</span></div></div></div>
       <div style="font-size:12px;margin-top:6px" class="${d.changed ? 'tone-ok' : 'tone-mute'}">
         ${d.changed ? '✔ the intervention changed the output — the direction is causally live at this layer' : '– no change at this strength'}</div>`;
-  } catch (e) { status.textContent = 'error: ' + e.message; }
-  finally { btn.disabled = false; }
+  } catch (e) { if (statusEl) statusEl.textContent = 'error: ' + e.message; }
+  finally { if (btn) btn.disabled = false; }
+}
+
+async function runSteer() {
+  const word = (document.getElementById('st-word').value || '').trim();
+  const prompt = document.getElementById('prompt').value.trim();
+  const status = document.getElementById('st-status');
+  if (!word || !prompt) { status.textContent = 'need a prompt and a word'; return; }
+  const body = {
+    prompt, chat: document.getElementById('chat').checked, word,
+    layer: Number(document.getElementById('st-layer').value) || 0,
+    strength: Number(document.getElementById('st-str').value) || 0.1,
+    transport: document.getElementById('st-tr').value,
+    gen_tokens: Number(document.getElementById('gen').value) || 24,
+  };
+  const vs = (document.getElementById('st-vs').value || '').trim();
+  if (vs) body.vs_word = vs;
+  await doSteerRun(body, status, document.getElementById('st-out'), document.getElementById('st-run'));
+}
+
+function mode(m) {
+  ['hijack', 'explore'].forEach(x => {
+    const pane = document.getElementById('mode-' + x);
+    const tab = document.getElementById('tab-' + x);
+    if (pane) pane.style.display = (x === m) ? '' : 'none';
+    if (tab) tab.classList.toggle('active', x === m);
+  });
 }
 
 function tip(ev, layer, pos) {
