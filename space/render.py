@@ -215,6 +215,9 @@ table.stgrid th.stcorner { left: 0; z-index: 2; }
 .stcell.stnoise { opacity: .38; font-style: italic; }
 .stcell.sttransient { opacity: .72; }
 tr.stfinal th, tr.stfinal td { border-top: 2px solid #b9b9b2; }
+.stcmp { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px; }
+.sthd { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #8a8a92; margin-bottom: 4px; }
+@media (max-width: 800px) { .stcmp { grid-template-columns: 1fr; } }
 """
 
 

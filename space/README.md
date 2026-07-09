@@ -8,7 +8,7 @@ sdk_version: 6.20.0
 app_file: app.py
 pinned: false
 license: apache-2.0
-short_description: Watch a language model's thoughts form before it speaks
+short_description: Watch a model's thoughts form before it speaks — then steer them
 ---
 
 # silent-thoughts
@@ -23,5 +23,10 @@ An interactive workbench for [Anthropic's Jacobian lens](https://github.com/anth
   see the layer×position grid of what each layer is disposed to say, the silent-thoughts
   summary, and rank-across-layers for any words you track.
 
+- **Steer** — the causal test, live: inject a word's direction into one layer and watch
+  the answer flip (or refuse to — the reading≠writing asymmetry, finding 3).
+
 Full workbench, method notes, and honest limitations:
 **[github.com/OphanimLLC/silent-thoughts](https://github.com/OphanimLLC/silent-thoughts)**
+
+Built by **Dave Ralston** — dave@ophanim.ai

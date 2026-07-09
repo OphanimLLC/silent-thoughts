@@ -15,6 +15,8 @@ Ask a 26B chat model *"What currency is used in the country shaped like a boot?"
 
 The model resolved *boot → Italy → euro* entirely silently; generation just reads the workspace out. The `Silent thoughts` panel surfaces this automatically — no manual token hunting. (`examples/boot-riddle-chat.json`)
 
+**And the part nobody does with a lens: we close the causal loop.** A readout alone is correlational — so the workbench can *write back*: inject a concept's (centered) output direction into the residual stream at one layer and regenerate. At late layers this flips the answer live (*What is the capital of France?* → **Rome**), while the same injection through the lens transport `Jᵀ` fails on the 26B — reading and writing are not symmetric (finding 3). The lens becomes tweezers, not just a microscope.
+
 ## Findings
 
 ### 1. Signal vs. noise: how to not fool yourself with a logit-style lens
@@ -100,6 +102,10 @@ space/    the HuggingFace Space app (gallery + live demo)
 - Findings are from **one** 26B gemma-family chat derivative plus Qwen2.5-0.5B-Instruct; we haven't swept architectures. Late-layer direct steering replicated on both; the total `Jᵀ` failure was 26B-only (weak `Jᵀ` steering exists on the 0.5B), so treat finding 3's strong form as MoE/scale-specific until replicated.
 - The silent-thoughts thresholds (run ≥3, conc ≥0.5, late bar = last 6 layers) were tuned on a handful of probes on one model, not a benchmark.
 - Steering "works" at late layers in the sense of flipping the argmax; outputs under steering are often degenerate (`Rome Rome Rome`). It is a causal probe, not a control method.
+
+## Author
+
+**Dave Ralston** — [dave@ophanim.ai](mailto:dave@ophanim.ai)
 
 ## License
 
